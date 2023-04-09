@@ -1,2 +1,4 @@
 ip_filter/
 build/
+.vscode
+main
