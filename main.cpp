@@ -4,6 +4,7 @@
 #include <deque>
 #include <array>
 #include <algorithm>
+#include <fstream>
 
 
 using T1 = std::array<int,4>;
@@ -29,7 +30,7 @@ std::vector<std::string> split(const std::string &str, char d)
 }
 
 
-int parsingString(std::string line, T1 &ar) 
+int parsingString(const std::string &line, T1 &a) 
 {
     std::vector<std::string> v = split(line, '\t');
     if (v.size() != 3) return 1;
@@ -40,10 +41,10 @@ int parsingString(std::string line, T1 &ar)
     int i = 0;
     for (auto el = v2.cbegin(); el != v2.end(); ++el, ++i) {
         try {
-            ar[i] = std::stoi(*el);
+            a[i] = std::stoi(*el);
         }
         catch (const std::exception &e) {
-            return 2;
+            return 3;
         }        
     }
 
@@ -66,11 +67,27 @@ void inputConsole(std::deque<T1> &mas)
 
 void inputFile(std::deque<T1> &mas)
 {
-
+    std::fstream fs;
+    fs.open("ip_filter/ip_filter.tsv", std::fstream::in);
+    if (fs.is_open()) {
+        std::cout << "file open" << std::endl;
+        while (!fs.eof()) {
+            std::string line;
+            std::getline(fs, line);
+            T1 ar;
+            if (parsingString(line, ar) == 0) 
+                mas.push_back(ar);
+            else
+                std::cout << "Ошибка ввода строки" << std::endl;            
+        }
+    }
+    else 
+        std::cout << "file not open" << std::endl;
+    fs.close();
 }
 
 
-void printIP(T1 &ip) 
+inline void printIP(const T1 &ip) 
 {
     std::cout << ip[0] << "." << ip[1] << "." << ip[2] << "." << ip[3] << std::endl;
 }
@@ -78,34 +95,57 @@ void printIP(T1 &ip)
 
 int main(int argc, char const *argv[])
 {
+    bool flConsole {false};
     std::deque<T1> ipMas;
-    // inputFile(ipMas);        // Ввод данных из файла
-    inputConsole(ipMas);        // Ввод данных с консоли
-    std::cout << "Количество элементов в массиве:" << ipMas.size() << std::endl;
 
+    if (flConsole)  inputConsole(ipMas);        // Ввод данных с консоли
+    else inputFile(ipMas);                      // Ввод данных из файла
 
-    // TODO reverse lexicographically sort
+    // std::cout << "Количество элементов в массиве:" << ipMas.size() << std::endl;
+
+    // 1. reverse lexicographically sort
     std::sort(ipMas.begin(), ipMas.end(), [](T1 b, T1 a)
     {
-    for (auto it1 = a.cbegin(), it2 = b.cbegin(); it1 != a.end(); ++it1, ++it2)
-    {
-        if (*it1 > *it2) 
-            return false;
-        else if (*it1 < *it2) 
-            return true;
+        for (auto it1 = a.cbegin(), it2 = b.cbegin(); it1 != a.end(); ++it1, ++it2)
+        {
+            if (*it1 > *it2) 
+                return false;
+            else if (*it1 < *it2) 
+                return true;
+        }
+        return false;
     }
-    return false;
+    );
+    for(auto el: ipMas)
+        printIP(el);    
+
+
+    // 2. список адресов, первый байт которых равен 1
+    std::for_each(ipMas.begin(), ipMas.end(), [](T1 a)
+    {
+        if (a.at(0) == 1) 
+            printIP(a);
     }
     );
 
+    // 3. список адресов, первый байт которых равен 46, а второй 70
+    std::for_each(ipMas.begin(), ipMas.end(), [](T1 a)
+    {
+        if ((a.at(0) == 46) && (a.at(1) == 70))
+            printIP(a);
+    }
+    );
 
-    for(auto el: ipMas)
-        printIP(el);
-
-
-    
-
-    std::cout << "Выход" << std::endl;
+    // 4. список адресов, любой байт которых равен 46
+    std::for_each(ipMas.begin(), ipMas.end(), [](T1 a)
+    {
+        for (auto it : a)
+            if (it == 46) {
+                printIP(a);
+                break;
+            }
+    }
+    );
 
     return 0;
 }
